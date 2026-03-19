@@ -1,0 +1,26 @@
+# Profilo Chromium (contiene sessione/cookie, non va nel repo)
+.chromium-profilo/
+
+# Flag di configurazione locale
+.configurazione_completata
+
+# Log
+*.log
+
+# File di sistema
+__pycache__/
+*.pyc
+*.pyo
+
+# Video (troppo pesanti per git, si copiano a mano)
+*.mp4
+*.avi
+*.mkv
+*.mov
+
+# File temporanei
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db

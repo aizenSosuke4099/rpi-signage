@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pannello Signage</title>
+    <style>
+        /* === Stile generale === */
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #0f172a;
+            color: #e2e8f0;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 1.8rem;
+            margin-bottom: 30px;
+            color: #38bdf8;
+        }
+
+        h2 {
+            font-size: 1.2rem;
+            margin-bottom: 15px;
+            color: #94a3b8;
+            border-bottom: 1px solid #1e293b;
+            padding-bottom: 8px;
+        }
+
+        /* === Contenitore principale === */
+        .contenitore {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        /* === Card stile === */
+        .card {
+            background: #1e293b;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border: 1px solid #334155;
+        }
+
+        /* === Messaggi flash === */
+        .flash {
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            font-weight: 500;
+        }
+        .flash.successo { background: #064e3b; color: #6ee7b7; border: 1px solid #065f46; }
+        .flash.errore { background: #7f1d1d; color: #fca5a5; border: 1px solid #991b1b; }
+
+        /* === Elemento playlist === */
+        .elemento {
+            background: #0f172a;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 12px;
+            border: 1px solid #334155;
+        }
+
+        .elemento-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        .badge.video { background: #7c3aed; color: white; }
+        .badge.web { background: #0891b2; color: white; }
+
+        /* === Form e input === */
+        label {
+            display: block;
+            font-size: 0.85rem;
+            color: #94a3b8;
+            margin-bottom: 4px;
+            margin-top: 10px;
+        }
+
+        input[type="text"], input[type="number"], select {
+            width: 100%;
+            padding: 10px 12px;
+            background: #0f172a;
+            border: 1px solid #475569;
+            border-radius: 6px;
+            color: #e2e8f0;
+            font-size: 0.95rem;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: #38bdf8;
+        }
+
+        /* === Bottoni === */
+        .btn {
+            display: inline-block;
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+        .btn:hover { opacity: 0.85; }
+
+        .btn-primario { background: #2563eb; color: white; }
+        .btn-successo { background: #059669; color: white; }
+        .btn-pericolo { background: #dc2626; color: white; }
+        .btn-secondario { background: #475569; color: white; }
+        .btn-avviso { background: #d97706; color: white; }
+
+        .btn-piccolo {
+            padding: 4px 10px;
+            font-size: 0.75rem;
+        }
+
+        .gruppo-bottoni {
+            display: flex;
+            gap: 6px;
+            margin-top: 10px;
+        }
+
+        /* === Checkbox personalizzata === */
+        .checkbox-gruppo {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        /* === Range slider === */
+        input[type="range"] {
+            width: 100%;
+            margin-top: 5px;
+        }
+
+        .range-valore {
+            text-align: right;
+            font-size: 0.85rem;
+            color: #38bdf8;
+        }
+
+        /* === Sezione aggiungi === */
+        .aggiungi-form {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .aggiungi-form .pieno { grid-column: 1 / -1; }
+
+        /* === Footer === */
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+            color: #475569;
+            font-size: 0.8rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="contenitore">
+        <h1>Pannello Digital Signage</h1>
+
+        <!-- Messaggi flash -->
+        {% with messaggi = get_flashed_messages(with_categories=true) %}
+            {% for categoria, messaggio in messaggi %}
+                <div class="flash {{ categoria }}">{{ messaggio }}</div>
+            {% endfor %}
+        {% endwith %}
+
+        <!-- === PLAYLIST === -->
+        <div class="card">
+            <h2>Playlist</h2>
+
+            {% for elemento in config.elementi %}
+            <div class="elemento">
+                <div class="elemento-header">
+                    <span>
+                        <span class="badge {{ elemento.tipo }}">{{ elemento.tipo }}</span>
+                        <strong style="margin-left: 8px;">{{ elemento.descrizione }}</strong>
+                    </span>
+                    <span style="font-size: 0.8rem; color: #64748b;">
+                        #{{ loop.index }}
+                    </span>
+                </div>
+
+                <form method="POST" action="/aggiorna_elemento">
+                    <input type="hidden" name="indice" value="{{ loop.index0 }}">
+
+                    <label>Sorgente (percorso file o URL):</label>
+                    <input type="text" name="sorgente" value="{{ elemento.sorgente }}">
+
+                    <label>Descrizione:</label>
+                    <input type="text" name="descrizione" value="{{ elemento.descrizione }}">
+
+                    {% if elemento.tipo == "web" %}
+                    <label>Durata (secondi):</label>
+                    <input type="number" name="durata_secondi"
+                           value="{{ elemento.durata_secondi }}" min="5" max="300">
+                    {% endif %}
+
+                    <div class="gruppo-bottoni">
+                        <button type="submit" class="btn btn-primario btn-piccolo">Salva</button>
+
+                        <!-- Bottoni sposta su/giù -->
+                        {% if not loop.first %}
+                        <button type="button" class="btn btn-secondario btn-piccolo"
+                                onclick="fetch('/sposta_elemento/{{ loop.index0 }}/su', {method:'POST'}).then(()=>location.reload())">
+                            ↑
+                        </button>
+                        {% endif %}
+                        {% if not loop.last %}
+                        <button type="button" class="btn btn-secondario btn-piccolo"
+                                onclick="fetch('/sposta_elemento/{{ loop.index0 }}/giu', {method:'POST'}).then(()=>location.reload())">
+                            ↓
+                        </button>
+                        {% endif %}
+
+                        <!-- Rimuovi -->
+                        <button type="button" class="btn btn-pericolo btn-piccolo"
+                                onclick="if(confirm('Rimuovere questo elemento?')) fetch('/rimuovi_elemento/{{ loop.index0 }}', {method:'POST'}).then(()=>location.reload())">
+                            Rimuovi
+                        </button>
+                    </div>
+                </form>
+            </div>
+            {% endfor %}
+
+            {% if not config.elementi %}
+            <p style="color: #64748b; text-align: center; padding: 20px;">
+                Nessun elemento nella playlist. Aggiungine uno qui sotto.
+            </p>
+            {% endif %}
+        </div>
+
+        <!-- === AGGIUNGI ELEMENTO === -->
+        <div class="card">
+            <h2>Aggiungi elemento</h2>
+            <form method="POST" action="/aggiungi_elemento">
+                <div class="aggiungi-form">
+                    <div>
+                        <label>Tipo:</label>
+                        <select name="tipo" id="tipo-nuovo" onchange="mostraDurata()">
+                            <option value="video">Video</option>
+                            <option value="web">Pagina Web</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label>Descrizione:</label>
+                        <input type="text" name="descrizione" placeholder="es. Video prodotti" required>
+                    </div>
+                    <div class="pieno">
+                        <label>Sorgente (percorso file o URL):</label>
+                        <input type="text" name="sorgente"
+                               placeholder="es. /home/kiosk/video/promo.mp4 oppure https://..." required>
+                    </div>
+                    <div id="campo-durata" style="display: none;">
+                        <label>Durata (secondi):</label>
+                        <input type="number" name="durata_secondi" value="20" min="5" max="300">
+                    </div>
+                </div>
+                <div style="margin-top: 15px;">
+                    <button type="submit" class="btn btn-successo">Aggiungi alla playlist</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- === IMPOSTAZIONI === -->
+        <div class="card">
+            <h2>Impostazioni</h2>
+            <form method="POST" action="/aggiorna_impostazioni">
+                <label>Volume video: <span class="range-valore" id="val-volume">
+                    {{ config.impostazioni.volume_video }}%
+                </span></label>
+                <input type="range" name="volume_video" min="0" max="100"
+                       value="{{ config.impostazioni.volume_video }}"
+                       oninput="document.getElementById('val-volume').textContent = this.value + '%'">
+
+                <div class="checkbox-gruppo">
+                    <input type="checkbox" name="nascondi_cursore" id="cursore"
+                           {{ 'checked' if config.impostazioni.nascondi_cursore }}>
+                    <label for="cursore" style="margin: 0;">Nascondi cursore del mouse</label>
+                </div>
+
+                <div class="checkbox-gruppo">
+                    <input type="checkbox" name="log_abilitato" id="log"
+                           {{ 'checked' if config.impostazioni.log_abilitato }}>
+                    <label for="log" style="margin: 0;">Abilita log</label>
+                </div>
+
+                <div style="margin-top: 15px;">
+                    <button type="submit" class="btn btn-primario">Salva impostazioni</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- === AZIONI === -->
+        <div class="card">
+            <h2>Azioni</h2>
+            <div class="gruppo-bottoni">
+                <form method="POST" action="/riavvia_kiosk" style="display: inline;">
+                    <button type="submit" class="btn btn-avviso"
+                            onclick="return confirm('Riavviare il kiosk?')">
+                        Riavvia Kiosk
+                    </button>
+                </form>
+                <form method="POST" action="/riconfigura" style="display: inline;">
+                    <button type="submit" class="btn btn-pericolo"
+                            onclick="return confirm('Cancellare la sessione e rifare il login?\nDovrai andare alla TV per rifare il login.')">
+                        Riconfigura (rifare login)
+                    </button>
+                </form>
+            </div>
+            <p style="margin-top: 10px; font-size: 0.8rem; color: #64748b;">
+                <strong>Riavvia Kiosk</strong>: applica subito le modifiche alla playlist (il login resta salvato).<br>
+                <strong>Riconfigura</strong>: cancella la sessione del browser. Utile se devi rifare il login sul sito.
+                Dopo la riconfigurazione, vai alla TV per fare il nuovo login.
+            </p>
+        </div>
+
+        <div class="footer">
+            RPi Digital Signage &mdash; Pannello di configurazione
+        </div>
+    </div>
+
+    <script>
+        // Mostra/nasconde il campo durata in base al tipo selezionato
+        function mostraDurata() {
+            const tipo = document.getElementById('tipo-nuovo').value;
+            const campo = document.getElementById('campo-durata');
+            campo.style.display = tipo === 'web' ? 'block' : 'none';
+        }
+    </script>
+</body>
+</html>

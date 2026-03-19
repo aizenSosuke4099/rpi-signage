@@ -1,0 +1,21 @@
+{
+    "elementi": [
+        {
+            "tipo": "video",
+            "sorgente": "/home/kiosk/video/presentazione.mp4",
+            "descrizione": "Video prodotti aziendale"
+        },
+        {
+            "tipo": "web",
+            "sorgente": "https://esempio.com/fotovoltaico",
+            "durata_secondi": 20,
+            "descrizione": "Panoramica impianto fotovoltaico"
+        }
+    ],
+    "impostazioni": {
+        "porta_pannello_web": 8080,
+        "nascondi_cursore": true,
+        "volume_video": 80,
+        "log_abilitato": true
+    }
+}
