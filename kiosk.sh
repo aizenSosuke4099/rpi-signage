@@ -238,13 +238,23 @@ if [ -z "$url_web" ] || [ "$url_web" = "null" ]; then
     url_web="about:blank"
 fi
 
+# --- Autologin: controlla/rinnova la sessione prima di aprire Chromium ---
+autologin_abilitato=$(jq -r '.autologin.abilitato // false' "$FILE_CONFIG")
+if [ "$autologin_abilitato" = "true" ]; then
+    scrivi_log "Autologin abilitato, esecuzione controllo sessione..."
+    python3 "$CARTELLA_PROGETTO/autologin.py" 2>&1 | while read -r riga; do
+        scrivi_log "$riga"
+    done
+    scrivi_log "Autologin completato"
+fi
+
 # --- Avvia Chromium con profilo persistente ---
 avvia_chromium "$url_web"
 
 # --- Modalità configurazione (solo al primo avvio o se richiesto) ---
 # Se non è mai stata fatta la configurazione, entra in modalità configurazione
 # per permettere all'utente di fare login e navigare alla pagina giusta.
-# Al riavvio successivo, Chromium caricherà la sessione salvata automaticamente.
+# Al riavvio successivo, l'autologin + profilo persistente gestiscono tutto.
 if [ ! -f "$FILE_PRONTO" ]; then
     modalita_configurazione
 else

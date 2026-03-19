@@ -58,9 +58,15 @@ apt-get install -y \
     zenity \
     python3-flask \
     python3-pip \
+    chromium-driver \
     lightdm
 
 stampa_info "Pacchetti installati con successo"
+
+# Installa Selenium per l'autologin
+stampa_info "Installazione Selenium per autologin..."
+pip3 install selenium --break-system-packages
+stampa_info "Selenium installato"
 
 # --- 2. Creazione utente kiosk (se non esiste) ---
 

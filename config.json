@@ -17,5 +17,18 @@
         "nascondi_cursore": true,
         "volume_video": 80,
         "log_abilitato": true
+    },
+    "autologin": {
+        "abilitato": true,
+        "url_login": "https://esempio.com/login",
+        "email": "tuaemail@azienda.it",
+        "password": "la_tua_password",
+        "url_dopo_login": "https://esempio.com/fotovoltaico/panoramica",
+        "selettori": {
+            "campo_email": "input[type='email'], input[name='email'], input[name='username']",
+            "campo_password": "input[type='password']",
+            "bottone_login": "button[type='submit'], input[type='submit']",
+            "elemento_conferma": ""
+        }
     }
 }
