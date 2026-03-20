@@ -2,8 +2,41 @@
     "elementi": [
         {
             "tipo": "video",
-            "sorgente": "/home/kiosk/video/presentazione.mp4",
-            "descrizione": "Video prodotti aziendale"
+            "sorgente": "/home/kiosk/video/video1.mp4",
+            "descrizione": "Video 1"
+        },
+        {
+            "tipo": "web",
+            "sorgente": "https://esempio.com/fotovoltaico",
+            "durata_secondi": 20,
+            "descrizione": "Panoramica impianto fotovoltaico"
+        },
+        {
+            "tipo": "video",
+            "sorgente": "/home/kiosk/video/video2.mp4",
+            "descrizione": "Video 2"
+        },
+        {
+            "tipo": "web",
+            "sorgente": "https://esempio.com/fotovoltaico",
+            "durata_secondi": 20,
+            "descrizione": "Panoramica impianto fotovoltaico"
+        },
+        {
+            "tipo": "video",
+            "sorgente": "/home/kiosk/video/video3.mp4",
+            "descrizione": "Video 3"
+        },
+        {
+            "tipo": "web",
+            "sorgente": "https://esempio.com/fotovoltaico",
+            "durata_secondi": 20,
+            "descrizione": "Panoramica impianto fotovoltaico"
+        },
+        {
+            "tipo": "video",
+            "sorgente": "/home/kiosk/video/video4.mp4",
+            "descrizione": "Video 4"
         },
         {
             "tipo": "web",
