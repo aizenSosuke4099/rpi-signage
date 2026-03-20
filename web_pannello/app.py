@@ -17,7 +17,14 @@ CARTELLA_PROGETTO = Path(__file__).resolve().parent.parent
 FILE_CONFIG = CARTELLA_PROGETTO / "config.json"
 
 app = Flask(__name__)
-app.secret_key = os.urandom(24).hex()
+# Chiave stabile: generata una volta e salvata su file, così le sessioni
+# Flask sopravvivono ai riavvii del pannello (es. alimentazione instabile)
+_file_chiave = CARTELLA_PROGETTO / ".flask_secret"
+if _file_chiave.exists():
+    app.secret_key = _file_chiave.read_text().strip()
+else:
+    app.secret_key = os.urandom(24).hex()
+    _file_chiave.write_text(app.secret_key)
 
 
 def leggi_config():

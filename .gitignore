@@ -3,6 +3,7 @@
 
 # Flag di configurazione locale
 .configurazione_completata
+.flask_secret
 
 # Log
 *.log

@@ -86,7 +86,11 @@ attendi_display() {
 controlla_chromium() {
     # Verifica che Chromium sia ancora in esecuzione.
     # Se è crashato, lo riavvia automaticamente.
-    if [ -n "$PID_CHROMIUM" ] && ! kill -0 "$PID_CHROMIUM" 2>/dev/null; then
+    # Se Chromium non è stato ancora avviato, non fare nulla.
+    if [ -z "$PID_CHROMIUM" ]; then
+        return 0
+    fi
+    if ! kill -0 "$PID_CHROMIUM" 2>/dev/null; then
         scrivi_log "AVVISO: Chromium crashato (PID $PID_CHROMIUM), riavvio..."
 
         # Pulisci eventuali processi orfani
