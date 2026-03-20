@@ -7,8 +7,8 @@ tramite un'interfaccia web semplice su porta 8080.
 
 import json
 import os
+import shutil
 import subprocess
-import signal
 from pathlib import Path
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify
 
@@ -17,25 +17,52 @@ CARTELLA_PROGETTO = Path(__file__).resolve().parent.parent
 FILE_CONFIG = CARTELLA_PROGETTO / "config.json"
 
 app = Flask(__name__)
-app.secret_key = "chiave_segreta_signage_2024"
+app.secret_key = os.urandom(24).hex()
 
 
 def leggi_config():
     """Legge e restituisce la configurazione corrente dal file JSON."""
-    with open(FILE_CONFIG, "r", encoding="utf-8") as f:
-        return json.load(f)
+    try:
+        with open(FILE_CONFIG, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError) as e:
+        # Restituisci una config minima di fallback
+        return {
+            "elementi": [],
+            "impostazioni": {
+                "porta_pannello_web": 8080,
+                "nascondi_cursore": True,
+                "volume_video": 80,
+                "log_abilitato": True
+            },
+            "_errore": f"Impossibile leggere config.json: {e}"
+        }
 
 
 def salva_config(config):
     """Salva la configurazione aggiornata nel file JSON."""
+    # Rimuovi eventuali campi interni prima di salvare
+    config.pop("_errore", None)
     with open(FILE_CONFIG, "w", encoding="utf-8") as f:
         json.dump(config, f, indent=4, ensure_ascii=False)
+
+
+def valida_intero(valore, minimo, massimo, default):
+    """Valida e converte un valore intero entro i limiti specificati."""
+    try:
+        v = int(valore)
+        return max(minimo, min(massimo, v))
+    except (ValueError, TypeError):
+        return default
 
 
 @app.route("/")
 def pagina_principale():
     """Mostra la pagina principale con la playlist e le impostazioni."""
     config = leggi_config()
+    errore_config = config.pop("_errore", None)
+    if errore_config:
+        flash(f"Attenzione: {errore_config}", "errore")
     return render_template("index.html", config=config)
 
 
@@ -43,16 +70,18 @@ def pagina_principale():
 def aggiorna_elemento():
     """Aggiorna un singolo elemento della playlist."""
     config = leggi_config()
-    indice = int(request.form["indice"])
+    indice = valida_intero(request.form.get("indice"), 0, 999, -1)
 
     if 0 <= indice < len(config["elementi"]):
         elemento = config["elementi"][indice]
-        elemento["sorgente"] = request.form["sorgente"]
-        elemento["descrizione"] = request.form["descrizione"]
+        elemento["sorgente"] = request.form.get("sorgente", "").strip()
+        elemento["descrizione"] = request.form.get("descrizione", "").strip()
 
-        # Se è un elemento web, aggiorna anche la durata
+        # Se è un elemento web, aggiorna anche la durata (validata tra 5 e 300 secondi)
         if elemento["tipo"] == "web":
-            elemento["durata_secondi"] = int(request.form.get("durata_secondi", 20))
+            elemento["durata_secondi"] = valida_intero(
+                request.form.get("durata_secondi"), 5, 300, 20
+            )
 
         salva_config(config)
         flash(f"Elemento {indice + 1} aggiornato!", "successo")
@@ -66,17 +95,31 @@ def aggiorna_elemento():
 def aggiungi_elemento():
     """Aggiunge un nuovo elemento alla playlist."""
     config = leggi_config()
-    tipo = request.form["tipo"]
+    tipo = request.form.get("tipo", "video")
+
+    # Validazione: tipo deve essere "video" o "web"
+    if tipo not in ("video", "web"):
+        flash("Tipo elemento non valido.", "errore")
+        return redirect(url_for("pagina_principale"))
+
+    sorgente = request.form.get("sorgente", "").strip()
+    descrizione = request.form.get("descrizione", "").strip()
+
+    if not sorgente:
+        flash("La sorgente non può essere vuota.", "errore")
+        return redirect(url_for("pagina_principale"))
 
     nuovo_elemento = {
         "tipo": tipo,
-        "sorgente": request.form["sorgente"],
-        "descrizione": request.form["descrizione"]
+        "sorgente": sorgente,
+        "descrizione": descrizione or f"Elemento {tipo}"
     }
 
     # Se è un elemento web, aggiungi la durata
     if tipo == "web":
-        nuovo_elemento["durata_secondi"] = int(request.form.get("durata_secondi", 20))
+        nuovo_elemento["durata_secondi"] = valida_intero(
+            request.form.get("durata_secondi"), 5, 300, 20
+        )
 
     config["elementi"].append(nuovo_elemento)
     salva_config(config)
@@ -121,7 +164,9 @@ def aggiorna_impostazioni():
     """Aggiorna le impostazioni generali."""
     config = leggi_config()
 
-    config["impostazioni"]["volume_video"] = int(request.form.get("volume_video", 80))
+    config["impostazioni"]["volume_video"] = valida_intero(
+        request.form.get("volume_video"), 0, 100, 80
+    )
     config["impostazioni"]["nascondi_cursore"] = "nascondi_cursore" in request.form
     config["impostazioni"]["log_abilitato"] = "log_abilitato" in request.form
 
@@ -134,7 +179,6 @@ def aggiorna_impostazioni():
 @app.route("/riconfigura", methods=["POST"])
 def riconfigura():
     """Cancella la sessione Chromium e riavvia per permettere un nuovo login."""
-    import shutil
     try:
         # Rimuovi il flag di configurazione completata
         file_pronto = CARTELLA_PROGETTO / ".configurazione_completata"
@@ -170,7 +214,7 @@ def riavvia_kiosk():
 
 @app.route("/stato")
 def stato():
-    """Restituisce lo stato del sistema in formato JSON (utile per debug)."""
+    """Restituisce lo stato del sistema in formato JSON (senza credenziali)."""
     try:
         risultato = subprocess.run(
             ["systemctl", "is-active", "kiosk"],
@@ -180,13 +224,23 @@ def stato():
     except Exception:
         stato_kiosk = "sconosciuto"
 
+    # Restituisci config SENZA le credenziali per sicurezza
+    config = leggi_config()
+    config.pop("autologin", None)
+    config.pop("_errore", None)
+
     return jsonify({
         "kiosk": stato_kiosk,
-        "config": leggi_config()
+        "config": config
     })
 
 
 if __name__ == "__main__":
-    porta = leggi_config()["impostazioni"]["porta_pannello_web"]
+    try:
+        config = leggi_config()
+        porta = config.get("impostazioni", {}).get("porta_pannello_web", 8080)
+    except Exception:
+        porta = 8080
+
     print(f"Pannello web avviato su http://0.0.0.0:{porta}")
     app.run(host="0.0.0.0", port=porta, debug=False)

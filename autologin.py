@@ -8,30 +8,70 @@ le credenziali e fa login automaticamente.
 Usa Selenium con il profilo Chromium persistente, così i cookie
 restano condivisi con il Chromium del kiosk.
 
+NOTA: Questo script gira in modalità headless (senza finestra visibile)
+e si completa PRIMA che il Chromium del kiosk venga avviato.
+Non c'è conflitto di profilo perché sono sequenziali.
+
 Uso: python3 autologin.py
 """
 
 import json
 import sys
 import time
+import traceback
 from pathlib import Path
-from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
+
+try:
+    from selenium import webdriver
+    from selenium.webdriver.chrome.options import Options
+    from selenium.webdriver.common.by import By
+    from selenium.webdriver.support.ui import WebDriverWait
+    from selenium.webdriver.support import expected_conditions as EC
+    from selenium.common.exceptions import TimeoutException, WebDriverException
+except ImportError:
+    print("[AUTOLOGIN] ERRORE: Selenium non installato. Esegui: pip3 install selenium --break-system-packages")
+    sys.exit(1)
 
 # Percorsi
 CARTELLA_PROGETTO = Path(__file__).resolve().parent
 FILE_CONFIG = CARTELLA_PROGETTO / "config.json"
 PROFILO_CHROMIUM = CARTELLA_PROGETTO / ".chromium-profilo"
 
+# Timeout globale per tutte le operazioni di rete (secondi)
+TIMEOUT_PAGINA = 30
+TIMEOUT_ELEMENTO = 15
+
 
 def leggi_config():
-    """Legge la configurazione dal file JSON."""
-    with open(FILE_CONFIG, "r", encoding="utf-8") as f:
-        return json.load(f)
+    """Legge la configurazione dal file JSON con gestione errori."""
+    try:
+        with open(FILE_CONFIG, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except FileNotFoundError:
+        print(f"[AUTOLOGIN] ERRORE: {FILE_CONFIG} non trovato")
+        return None
+    except json.JSONDecodeError as e:
+        print(f"[AUTOLOGIN] ERRORE: config.json non è JSON valido: {e}")
+        return None
+
+
+def crea_driver():
+    """Crea e restituisce un'istanza del driver Chromium configurata."""
+    opzioni = Options()
+    opzioni.add_argument(f"--user-data-dir={PROFILO_CHROMIUM}")
+    opzioni.add_argument("--no-sandbox")
+    opzioni.add_argument("--disable-dev-shm-usage")
+    opzioni.add_argument("--disable-gpu")
+    # Modalità headless: nessuna finestra visibile
+    opzioni.add_argument("--headless=new")
+
+    driver = webdriver.Chrome(options=opzioni)
+    driver.set_page_load_timeout(TIMEOUT_PAGINA)
+    driver.set_script_timeout(TIMEOUT_PAGINA)
+    # Timeout implicito per trovare elementi
+    driver.implicitly_wait(5)
+
+    return driver
 
 
 def esegui_login():
@@ -40,6 +80,8 @@ def esegui_login():
     Restituisce True se il login è riuscito (o non era necessario).
     """
     config = leggi_config()
+    if config is None:
+        return False
 
     # Leggi le credenziali dalla config
     credenziali = config.get("autologin", {})
@@ -48,15 +90,10 @@ def esegui_login():
     password = credenziali.get("password", "")
 
     # Selettori CSS per trovare i campi del form
-    # NOTA: questi vanno personalizzati in base al sito del fornitore.
-    # Quelli di default funzionano per la maggior parte dei siti.
     selettori = credenziali.get("selettori", {})
     sel_email = selettori.get("campo_email", "input[type='email'], input[name='email'], input[name='username']")
     sel_password = selettori.get("campo_password", "input[type='password']")
     sel_bottone = selettori.get("bottone_login", "button[type='submit'], input[type='submit']")
-
-    # Elemento che conferma che il login è andato a buon fine
-    # (qualcosa che appare solo quando sei loggato)
     sel_conferma = selettori.get("elemento_conferma", "")
 
     if not url_login or not email or not password:
@@ -65,44 +102,36 @@ def esegui_login():
 
     print(f"[AUTOLOGIN] Controllo sessione su: {url_login}")
 
-    # Configura Chromium con lo stesso profilo usato dal kiosk
-    opzioni = Options()
-    opzioni.add_argument(f"--user-data-dir={PROFILO_CHROMIUM}")
-    opzioni.add_argument("--no-sandbox")
-    opzioni.add_argument("--disable-dev-shm-usage")
-    opzioni.add_argument("--disable-gpu")
-
-    # Usa la modalità headless (senza finestra visibile) per il check
-    opzioni.add_argument("--headless=new")
-
+    driver = None
     try:
-        driver = webdriver.Chrome(options=opzioni)
-        driver.set_page_load_timeout(30)
+        driver = crea_driver()
 
         # Vai alla pagina di login
-        driver.get(url_login)
-        time.sleep(3)  # Aspetta il caricamento
+        try:
+            driver.get(url_login)
+        except TimeoutException:
+            print(f"[AUTOLOGIN] ERRORE: Timeout caricamento {url_login} ({TIMEOUT_PAGINA}s)")
+            return False
 
-        # Controlla se siamo già loggati
-        # Se c'è un elemento di conferma configurato, cercalo
+        time.sleep(3)  # Aspetta il rendering JavaScript
+
+        # Controlla se siamo già loggati (se c'è un selettore di conferma)
         if sel_conferma:
             try:
                 driver.find_element(By.CSS_SELECTOR, sel_conferma)
                 print("[AUTOLOGIN] Sessione ancora attiva, login non necessario")
-                driver.quit()
                 return True
             except Exception:
                 print("[AUTOLOGIN] Sessione scaduta, procedo con il login")
 
         # Cerca il campo email/username
         try:
-            campo_email = WebDriverWait(driver, 10).until(
+            campo_email = WebDriverWait(driver, TIMEOUT_ELEMENTO).until(
                 EC.presence_of_element_located((By.CSS_SELECTOR, sel_email))
             )
-        except Exception:
+        except TimeoutException:
             # Se non trova il campo email, probabilmente siamo già loggati
             print("[AUTOLOGIN] Campo email non trovato — probabilmente già loggato")
-            driver.quit()
             return True
 
         # Compila il form e invia
@@ -110,14 +139,24 @@ def esegui_login():
         campo_email.clear()
         campo_email.send_keys(email)
 
-        campo_password = driver.find_element(By.CSS_SELECTOR, sel_password)
+        try:
+            campo_password = driver.find_element(By.CSS_SELECTOR, sel_password)
+        except Exception:
+            print("[AUTOLOGIN] ERRORE: Campo password non trovato con selettore: " + sel_password)
+            return False
+
         campo_password.clear()
         campo_password.send_keys(password)
 
-        bottone = driver.find_element(By.CSS_SELECTOR, sel_bottone)
+        try:
+            bottone = driver.find_element(By.CSS_SELECTOR, sel_bottone)
+        except Exception:
+            print("[AUTOLOGIN] ERRORE: Bottone login non trovato con selettore: " + sel_bottone)
+            return False
+
         bottone.click()
 
-        # Aspetta che il login vada a buon fine (5 secondi)
+        # Aspetta che il login vada a buon fine
         time.sleep(5)
 
         # Verifica che il login sia riuscito
@@ -128,20 +167,31 @@ def esegui_login():
         url_panoramica = credenziali.get("url_dopo_login", "")
         if url_panoramica:
             print(f"[AUTOLOGIN] Navigazione a: {url_panoramica}")
-            driver.get(url_panoramica)
-            time.sleep(3)
+            try:
+                driver.get(url_panoramica)
+                time.sleep(3)
+            except TimeoutException:
+                print(f"[AUTOLOGIN] AVVISO: Timeout navigazione a {url_panoramica}")
 
-        driver.quit()
         print("[AUTOLOGIN] Login automatico completato con successo")
         return True
 
-    except Exception as e:
-        print(f"[AUTOLOGIN] Errore: {e}")
-        try:
-            driver.quit()
-        except Exception:
-            pass
+    except WebDriverException as e:
+        print(f"[AUTOLOGIN] ERRORE WebDriver: {e}")
         return False
+    except Exception as e:
+        print(f"[AUTOLOGIN] ERRORE imprevisto: {e}")
+        print(f"[AUTOLOGIN] Traceback: {traceback.format_exc()}")
+        return False
+    finally:
+        # Chiudi SEMPRE il driver, anche in caso di errore
+        if driver is not None:
+            try:
+                driver.quit()
+            except Exception:
+                # Forza la chiusura dei processi chromium orfani
+                import subprocess
+                subprocess.run(["pkill", "-f", "chromium.*headless"], capture_output=True)
 
 
 if __name__ == "__main__":
