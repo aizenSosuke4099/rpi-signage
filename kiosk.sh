@@ -333,6 +333,16 @@ if [ "$autologin_abilitato" = "true" ] && [ -n "$url_login" ] && [ "$url_login" 
     if [ -n "$login_email" ] && [ -n "$login_password" ]; then
         scrivi_log "Inserimento credenziali con xdotool..."
 
+        # Forza il focus sulla finestra di Chromium
+        xdotool windowactivate --sync "$ID_FINESTRA_CHROMIUM" 2>/dev/null
+        xdotool windowfocus --sync "$ID_FINESTRA_CHROMIUM" 2>/dev/null
+        sleep 1
+
+        # Click al centro della pagina per assicurare il focus
+        xdotool mousemove --window "$ID_FINESTRA_CHROMIUM" 960 540
+        xdotool click 1
+        sleep 1
+
         # Click sul campo username e digita
         xdotool key --clearmodifiers Tab
         sleep 0.5
@@ -360,8 +370,15 @@ if [ "$autologin_abilitato" = "true" ] && [ -n "$url_login" ] && [ "$url_login" 
             xdotool type --clearmodifiers "$url_dopo_login"
             sleep 0.5
             xdotool key --clearmodifiers Return
-            scrivi_log "Attesa caricamento dashboard (10s)..."
-            sleep 10
+            scrivi_log "Attesa caricamento dashboard (30s)..."
+            sleep 30
+
+            # Click sul bottone panoramica (coordinate in alto a destra)
+            scrivi_log "Click su bottone panoramica..."
+            xdotool mousemove 1230 85
+            sleep 0.5
+            xdotool click 1
+            sleep 5
         fi
 
         scrivi_log "Autologin completato"
