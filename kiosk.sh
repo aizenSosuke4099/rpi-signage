@@ -202,6 +202,7 @@ riproduci_video() {
         --fullscreen \
         --no-video-title-show \
         --no-osd \
+        --no-audio \
         --play-and-exit \
         "$percorso_video" \
         >/dev/null 2>&1
