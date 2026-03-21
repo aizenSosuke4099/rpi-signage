@@ -300,48 +300,87 @@ xset s noblank
 scrivi_log "Screensaver e risparmio energetico disabilitati"
 
 # --- Trova l'URL dell'elemento web nella config ---
-url_web=$(jq -r '.elementi[] | select(.tipo == "web") | .sorgente' "$FILE_CONFIG" | head -1)
+# Se c'è un url_dopo_login, usalo come URL principale (la dashboard)
+url_web=$(jq -r '.autologin.url_dopo_login // ""' "$FILE_CONFIG")
+if [ -z "$url_web" ] || [ "$url_web" = "null" ]; then
+    url_web=$(jq -r '.elementi[] | select(.tipo == "web") | .sorgente' "$FILE_CONFIG" | head -1)
+fi
 if [ -z "$url_web" ] || [ "$url_web" = "null" ]; then
     url_web="about:blank"
 fi
 
-# --- Macro replay: riproduce le azioni registrate (login, navigazione, ecc.) ---
-# Se esiste macro.json, riproduce le azioni in headless prima di avviare Chromium.
-# Se non esiste, prova il vecchio autologin.py come fallback.
-# Si completa PRIMA che il Chromium visibile venga avviato (nessuna race condition).
-FILE_MACRO="$CARTELLA_PROGETTO/macro.json"
-if [ -f "$FILE_MACRO" ]; then
-    scrivi_log "Macro trovata, riproduzione azioni registrate..."
-    timeout 90 python3 "$CARTELLA_PROGETTO/macro_recorder.py" riproduci 2>&1 | while read -r riga; do
-        scrivi_log "$riga"
-    done
-    esito_macro=$?
-    if [ "$esito_macro" -eq 124 ]; then
-        scrivi_log "AVVISO: Macro interrotta per timeout (90s)"
-    fi
-    scrivi_log "Macro replay completato"
-else
-    # Fallback: vecchio autologin con selettori CSS
-    autologin_abilitato=$(jq -r '.autologin.abilitato // false' "$FILE_CONFIG")
-    if [ "$autologin_abilitato" = "true" ]; then
-        scrivi_log "Autologin abilitato (nessuna macro trovata), esecuzione..."
-        timeout 60 python3 "$CARTELLA_PROGETTO/autologin.py" 2>&1 | while read -r riga; do
-            scrivi_log "$riga"
-        done
+# --- Autologin: fa login direttamente nel Chromium visibile con xdotool ---
+# Legge credenziali da config.json, apre Chromium sul login, digita e clicca.
+# Nessun headless: tutto nella finestra reale, cookie salvati nel profilo.
+autologin_abilitato=$(jq -r '.autologin.abilitato // false' "$FILE_CONFIG")
+url_login=$(jq -r '.autologin.url_login // ""' "$FILE_CONFIG")
+
+if [ "$autologin_abilitato" = "true" ] && [ -n "$url_login" ] && [ "$url_login" != "null" ]; then
+    scrivi_log "Autologin abilitato, apertura pagina login..."
+
+    # Avvia Chromium sulla pagina di login
+    avvia_chromium "$url_login"
+
+    # Aspetta che la pagina carichi completamente
+    scrivi_log "Attesa caricamento pagina login (10s)..."
+    sleep 10
+
+    # Leggi credenziali dal config
+    login_email=$(jq -r '.autologin.email // ""' "$FILE_CONFIG")
+    login_password=$(jq -r '.autologin.password // ""' "$FILE_CONFIG")
+
+    if [ -n "$login_email" ] && [ -n "$login_password" ]; then
+        scrivi_log "Inserimento credenziali con xdotool..."
+
+        # Click sul campo username e digita
+        xdotool key --clearmodifiers Tab
+        sleep 0.5
+        xdotool type --clearmodifiers "$login_email"
+        sleep 0.5
+
+        # Tab per passare al campo password e digita
+        xdotool key --clearmodifiers Tab
+        sleep 0.5
+        xdotool type --clearmodifiers "$login_password"
+        sleep 0.5
+
+        # Premi Invio per fare login
+        xdotool key --clearmodifiers Return
+        scrivi_log "Credenziali inserite, attesa login (15s)..."
+        sleep 15
+
+        # Naviga alla dashboard se c'è un URL dopo login
+        url_dopo_login=$(jq -r '.autologin.url_dopo_login // ""' "$FILE_CONFIG")
+        if [ -n "$url_dopo_login" ] && [ "$url_dopo_login" != "null" ]; then
+            scrivi_log "Navigazione a dashboard: $url_dopo_login"
+            # Usa xdotool per aprire l'URL nella barra degli indirizzi
+            xdotool key --clearmodifiers ctrl+l
+            sleep 0.5
+            xdotool type --clearmodifiers "$url_dopo_login"
+            sleep 0.5
+            xdotool key --clearmodifiers Return
+            scrivi_log "Attesa caricamento dashboard (10s)..."
+            sleep 10
+        fi
+
         scrivi_log "Autologin completato"
+    else
+        scrivi_log "AVVISO: Credenziali mancanti in config.json"
     fi
-fi
 
-# --- Avvia Chromium con profilo persistente ---
-avvia_chromium "$url_web"
-
-# --- Modalità configurazione (solo al primo avvio o se richiesto) ---
-if [ ! -f "$FILE_PRONTO" ]; then
-    modalita_configurazione
+    # Segna configurazione come completata
+    touch "$FILE_PRONTO"
 else
-    scrivi_log "Configurazione già completata, avvio loop diretto"
-    # Piccola pausa per permettere a Chromium di caricare la sessione salvata
-    sleep 5
+    # --- Avvia Chromium con profilo persistente (senza autologin) ---
+    avvia_chromium "$url_web"
+
+    # --- Modalità configurazione (solo al primo avvio) ---
+    if [ ! -f "$FILE_PRONTO" ]; then
+        modalita_configurazione
+    else
+        scrivi_log "Configurazione già completata, avvio loop diretto"
+        sleep 5
+    fi
 fi
 
 # --- Loop principale infinito ---
