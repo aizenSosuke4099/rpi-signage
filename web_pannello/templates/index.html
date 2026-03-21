@@ -312,6 +312,30 @@
             </form>
         </div>
 
+        <!-- === MACRO LOGIN === -->
+        <div class="card">
+            <h2>Macro Login</h2>
+            <div id="macro-info" style="margin-bottom: 12px;">
+                <p style="font-size: 0.85rem; color: #94a3b8;">Caricamento stato macro...</p>
+            </div>
+            <div class="gruppo-bottoni">
+                <form method="POST" action="/cancella_macro" style="display: inline;">
+                    <button type="submit" class="btn btn-pericolo btn-piccolo"
+                            onclick="return confirm('Cancellare la macro registrata?\nDovrai registrarne una nuova dal Raspberry.')">
+                        Cancella macro
+                    </button>
+                </form>
+            </div>
+            <p style="margin-top: 10px; font-size: 0.8rem; color: #64748b;">
+                La macro registra le azioni fatte sul browser (login, click, navigazione)
+                e le ripete automaticamente ad ogni avvio.<br>
+                Per registrare una nuova macro, dal Raspberry esegui:
+                <code style="background: #0f172a; padding: 2px 6px; border-radius: 4px;">
+                    python3 /home/kiosk/signage/macro_recorder.py registra
+                </code>
+            </p>
+        </div>
+
         <!-- === AZIONI === -->
         <div class="card">
             <h2>Azioni</h2>
@@ -331,8 +355,7 @@
             </div>
             <p style="margin-top: 10px; font-size: 0.8rem; color: #64748b;">
                 <strong>Riavvia Kiosk</strong>: applica subito le modifiche alla playlist (il login resta salvato).<br>
-                <strong>Riconfigura</strong>: cancella la sessione del browser. Utile se devi rifare il login sul sito.
-                Dopo la riconfigurazione, vai alla TV per fare il nuovo login.
+                <strong>Riconfigura</strong>: cancella sessione + macro. Utile se devi rifare il login o registrare nuove azioni.
             </p>
         </div>
 
@@ -348,6 +371,32 @@
             const campo = document.getElementById('campo-durata');
             campo.style.display = tipo === 'web' ? 'block' : 'none';
         }
+
+        // Carica lo stato della macro all'avvio
+        fetch('/stato_macro')
+            .then(r => r.json())
+            .then(data => {
+                const div = document.getElementById('macro-info');
+                if (data.registrata) {
+                    div.innerHTML = `
+                        <div style="background: #064e3b; border: 1px solid #065f46; border-radius: 8px; padding: 12px;">
+                            <span style="color: #6ee7b7; font-weight: 600;">Macro attiva</span>
+                            <span style="color: #94a3b8; font-size: 0.8rem; margin-left: 10px;">
+                                Registrata il ${data.data} · ${data.azioni} azioni ·
+                                Pagina finale: ${data.url_finale.substring(0, 40)}...
+                            </span>
+                        </div>`;
+                } else {
+                    div.innerHTML = `
+                        <div style="background: #7f1d1d; border: 1px solid #991b1b; border-radius: 8px; padding: 12px;">
+                            <span style="color: #fca5a5; font-weight: 600;">Nessuna macro registrata</span>
+                            <span style="color: #94a3b8; font-size: 0.8rem; margin-left: 10px;">
+                                Registrane una dal Raspberry per automatizzare il login
+                            </span>
+                        </div>`;
+                }
+            })
+            .catch(() => {});
     </script>
 </body>
 </html>

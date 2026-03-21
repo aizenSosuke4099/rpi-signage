@@ -183,6 +183,35 @@ def aggiorna_impostazioni():
     return redirect(url_for("pagina_principale"))
 
 
+@app.route("/stato_macro")
+def stato_macro():
+    """Restituisce info sulla macro registrata."""
+    file_macro = CARTELLA_PROGETTO / "macro.json"
+    if file_macro.exists():
+        with open(file_macro, "r", encoding="utf-8") as f:
+            macro = json.load(f)
+        return jsonify({
+            "registrata": True,
+            "data": macro.get("data_registrazione", "?"),
+            "azioni": macro.get("numero_azioni", 0),
+            "url_finale": macro.get("url_finale", "?")
+        })
+    return jsonify({"registrata": False})
+
+
+@app.route("/cancella_macro", methods=["POST"])
+def cancella_macro():
+    """Cancella la macro registrata e riavvia in modalità registrazione."""
+    file_macro = CARTELLA_PROGETTO / "macro.json"
+    try:
+        if file_macro.exists():
+            file_macro.unlink()
+        flash("Macro cancellata. Al prossimo riavvio potrai registrarne una nuova.", "successo")
+    except Exception as e:
+        flash(f"Errore: {e}", "errore")
+    return redirect(url_for("pagina_principale"))
+
+
 @app.route("/riconfigura", methods=["POST"])
 def riconfigura():
     """Cancella la sessione Chromium e riavvia per permettere un nuovo login."""

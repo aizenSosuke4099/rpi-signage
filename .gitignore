@@ -4,6 +4,7 @@
 # Flag di configurazione locale
 .configurazione_completata
 .flask_secret
+macro.json
 
 # Log
 *.log

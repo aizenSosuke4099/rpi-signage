@@ -309,21 +309,31 @@ if [ -z "$url_web" ] || [ "$url_web" = "null" ]; then
     url_web="about:blank"
 fi
 
-# --- Autologin: controlla/rinnova la sessione prima di aprire Chromium ---
-# Nota: autologin usa Chromium in modalità headless, separata dal Chromium del kiosk.
+# --- Macro replay: riproduce le azioni registrate (login, navigazione, ecc.) ---
+# Se esiste macro.json, riproduce le azioni in headless prima di avviare Chromium.
+# Se non esiste, prova il vecchio autologin.py come fallback.
 # Si completa PRIMA che il Chromium visibile venga avviato (nessuna race condition).
-autologin_abilitato=$(jq -r '.autologin.abilitato // false' "$FILE_CONFIG")
-if [ "$autologin_abilitato" = "true" ]; then
-    scrivi_log "Autologin abilitato, esecuzione controllo sessione..."
-    # Timeout di 60 secondi per evitare blocchi infiniti
-    timeout 60 python3 "$CARTELLA_PROGETTO/autologin.py" 2>&1 | while read -r riga; do
+FILE_MACRO="$CARTELLA_PROGETTO/macro.json"
+if [ -f "$FILE_MACRO" ]; then
+    scrivi_log "Macro trovata, riproduzione azioni registrate..."
+    timeout 90 python3 "$CARTELLA_PROGETTO/macro_recorder.py" riproduci 2>&1 | while read -r riga; do
         scrivi_log "$riga"
     done
-    esito_autologin=$?
-    if [ "$esito_autologin" -eq 124 ]; then
-        scrivi_log "AVVISO: Autologin interrotto per timeout (60s)"
+    esito_macro=$?
+    if [ "$esito_macro" -eq 124 ]; then
+        scrivi_log "AVVISO: Macro interrotta per timeout (90s)"
     fi
-    scrivi_log "Autologin completato"
+    scrivi_log "Macro replay completato"
+else
+    # Fallback: vecchio autologin con selettori CSS
+    autologin_abilitato=$(jq -r '.autologin.abilitato // false' "$FILE_CONFIG")
+    if [ "$autologin_abilitato" = "true" ]; then
+        scrivi_log "Autologin abilitato (nessuna macro trovata), esecuzione..."
+        timeout 60 python3 "$CARTELLA_PROGETTO/autologin.py" 2>&1 | while read -r riga; do
+            scrivi_log "$riga"
+        done
+        scrivi_log "Autologin completato"
+    fi
 fi
 
 # --- Avvia Chromium con profilo persistente ---
