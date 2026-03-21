@@ -193,18 +193,28 @@ JS_REGISTRATORE = """
 
 
 def crea_driver(headless=False):
-    """Crea un'istanza del driver Chromium."""
+    """Crea un'istanza del driver Chromium.
+
+    Su Debian Trixie/aarch64, usa il chromedriver installato dal sistema.
+    Evita Selenium Manager che non supporta linux/aarch64.
+    """
+    from selenium.webdriver.chrome.service import Service
+
     opzioni = Options()
     opzioni.add_argument(f"--user-data-dir={PROFILO_CHROMIUM}")
     opzioni.add_argument("--no-sandbox")
     opzioni.add_argument("--disable-dev-shm-usage")
     opzioni.add_argument("--disable-gpu")
     opzioni.add_argument("--start-maximized")
+    # Specifica il percorso al binario chromium
+    opzioni.binary_location = "/usr/bin/chromium"
 
     if headless:
         opzioni.add_argument("--headless=new")
 
-    driver = webdriver.Chrome(options=opzioni)
+    # Usa il chromedriver installato dal sistema, non Selenium Manager
+    service = Service("/usr/bin/chromedriver")
+    driver = webdriver.Chrome(service=service, options=opzioni)
     driver.set_page_load_timeout(30)
     driver.implicitly_wait(5)
     return driver

@@ -94,7 +94,7 @@ controlla_chromium() {
         scrivi_log "AVVISO: Chromium crashato (PID $PID_CHROMIUM), riavvio..."
 
         # Pulisci eventuali processi orfani
-        pkill -f "chromium-browser" 2>/dev/null
+        pkill -f "chromium" 2>/dev/null
         sleep 2
 
         # Riavvia Chromium
@@ -114,7 +114,7 @@ avvia_chromium() {
 
     scrivi_log "Avvio Chromium con profilo persistente: $url"
 
-    chromium-browser \
+    chromium \
         --noerrdialogs \
         --disable-infobars \
         --disable-session-crashed-bubble \

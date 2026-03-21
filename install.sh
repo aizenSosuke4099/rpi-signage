@@ -50,7 +50,7 @@ apt-get install -y \
     x11-xserver-utils \
     xinit \
     openbox \
-    chromium-browser \
+    chromium \
     mpv \
     unclutter \
     jq \
