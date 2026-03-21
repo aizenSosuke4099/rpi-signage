@@ -48,10 +48,11 @@ stampa_info "Installazione pacchetti necessari..."
 apt-get install -y \
     xserver-xorg \
     x11-xserver-utils \
+    x11-utils \
     xinit \
     openbox \
     chromium \
-    mpv \
+    vlc \
     unclutter \
     jq \
     xdotool \
@@ -65,7 +66,7 @@ stampa_info "Pacchetti installati con successo"
 
 # Installa Selenium per l'autologin
 stampa_info "Installazione Selenium per autologin..."
-pip3 install selenium --break-system-packages
+pip3 install selenium --break-system-packages --ignore-installed urllib3
 stampa_info "Selenium installato"
 
 # --- 2. Creazione utente kiosk (se non esiste) ---

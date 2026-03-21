@@ -178,8 +178,8 @@ nascondi_chromium() {
 }
 
 riproduci_video() {
-    # Riproduce un video a schermo intero con mpv
-    # mpv si apre sopra tutto, e si chiude automaticamente a fine video
+    # Riproduce un video a schermo intero con VLC
+    # VLC si chiude automaticamente a fine video (vlc://quit)
     # Se il file non esiste, CONTINUA il loop (non blocca)
     local percorso_video="$1"
     local volume
@@ -197,16 +197,16 @@ riproduci_video() {
     # Nascondi Chromium prima di mostrare il video
     nascondi_chromium
 
-    # mpv in modalità schermo intero, senza controlli, si chiude a fine video
-    mpv \
+    # Converti volume da percentuale (0-100) a scala VLC (0-256)
+    local volume_vlc=$(( volume * 256 / 100 ))
+
+    # VLC in modalità schermo intero, senza interfaccia, si chiude a fine video
+    cvlc \
         --fullscreen \
-        --no-osc \
-        --no-input-default-bindings \
-        --no-terminal \
-        --volume="$volume" \
-        --hwdec=auto \
-        --gpu-context=auto \
-        --ontop \
+        --no-video-title-show \
+        --no-osd \
+        --gain="$volume_vlc" \
+        --play-and-exit \
         "$percorso_video" \
         >/dev/null 2>&1
 
