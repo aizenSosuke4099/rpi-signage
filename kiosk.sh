@@ -197,15 +197,11 @@ riproduci_video() {
     # Nascondi Chromium prima di mostrare il video
     nascondi_chromium
 
-    # Converti volume da percentuale (0-100) a scala VLC (0-256)
-    local volume_vlc=$(( volume * 256 / 100 ))
-
     # VLC in modalità schermo intero, senza interfaccia, si chiude a fine video
     cvlc \
         --fullscreen \
         --no-video-title-show \
         --no-osd \
-        --gain="$volume_vlc" \
         --play-and-exit \
         "$percorso_video" \
         >/dev/null 2>&1
