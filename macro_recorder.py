@@ -376,13 +376,18 @@ def riproduci():
             tipo = azione.get("tipo", "")
             selettore = azione.get("selettore", "")
 
-            # Calcola la pausa tra un'azione e l'altra (come l'utente originale)
-            timestamp = azione.get("timestamp", 0)
-            if timestamp_precedente and timestamp > timestamp_precedente:
-                pausa = min((timestamp - timestamp_precedente) / 1000.0, 5.0)
-                if pausa > 0.1:
-                    time.sleep(pausa)
-            timestamp_precedente = timestamp
+            # Attesa prima dell'azione: usa 'attesa_prima' se presente (macro manuale),
+            # altrimenti calcola dal timestamp (macro registrata automaticamente)
+            attesa_prima = azione.get("attesa_prima", 0)
+            if attesa_prima > 0:
+                time.sleep(attesa_prima)
+            else:
+                timestamp = azione.get("timestamp", 0)
+                if timestamp_precedente and timestamp > timestamp_precedente:
+                    pausa = min((timestamp - timestamp_precedente) / 1000.0, 5.0)
+                    if pausa > 0.1:
+                        time.sleep(pausa)
+                timestamp_precedente = timestamp
 
             print(f"[MACRO] Azione {i+1}/{len(azioni)}: {tipo}", end="")
 
