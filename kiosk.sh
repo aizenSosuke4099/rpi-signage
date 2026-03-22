@@ -213,6 +213,7 @@ riproduci_video() {
 
 mostra_pagina_web() {
     # Mostra la finestra Chromium (già aperta) per la durata specificata
+    # Esegue un click periodico per mantenere la sessione attiva
     local durata="$1"
     # Fallback: 20 secondi se durata non valida
     [ -z "$durata" ] || [ "$durata" = "null" ] && durata=20
@@ -222,8 +223,24 @@ mostra_pagina_web() {
     # Porta Chromium in primo piano
     mostra_chromium
 
-    # Aspetta la durata configurata
-    sleep "$durata"
+    # Click periodico ogni 30 secondi per mantenere la sessione attiva
+    local tempo_trascorso=0
+    while [ "$tempo_trascorso" -lt "$durata" ]; do
+        local attesa=30
+        # Se mancano meno di 30 secondi, aspetta solo il tempo rimanente
+        local rimanente=$((durata - tempo_trascorso))
+        if [ "$rimanente" -lt "$attesa" ]; then
+            attesa=$rimanente
+        fi
+        sleep "$attesa"
+        tempo_trascorso=$((tempo_trascorso + attesa))
+
+        # Click al centro della pagina per mantenere la sessione
+        if [ "$tempo_trascorso" -lt "$durata" ] && [ -n "$ID_FINESTRA_CHROMIUM" ]; then
+            xdotool mousemove --window "$ID_FINESTRA_CHROMIUM" 960 540
+            xdotool click 1
+        fi
+    done
 
     scrivi_log "Tempo pagina web scaduto"
 }
