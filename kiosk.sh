@@ -373,12 +373,16 @@ if [ "$autologin_abilitato" = "true" ] && [ -n "$url_login" ] && [ "$url_login" 
             scrivi_log "Attesa caricamento dashboard (30s)..."
             sleep 30
 
-            # Click sul bottone panoramica (coordinate in alto a destra)
-            scrivi_log "Click su bottone panoramica..."
-            xdotool mousemove 1230 85
-            sleep 0.5
-            xdotool click 1
-            sleep 5
+            # Click sul bottone panoramica (coordinate configurabili da config.json)
+            click_x=$(jq -r '.autologin.click_dopo_login.x // 0' "$FILE_CONFIG")
+            click_y=$(jq -r '.autologin.click_dopo_login.y // 0' "$FILE_CONFIG")
+            if [ "$click_x" -gt 0 ] 2>/dev/null && [ "$click_y" -gt 0 ] 2>/dev/null; then
+                scrivi_log "Click su bottone panoramica ($click_x, $click_y)..."
+                xdotool mousemove "$click_x" "$click_y"
+                sleep 0.5
+                xdotool click 1
+                sleep 5
+            fi
         fi
 
         scrivi_log "Autologin completato"
