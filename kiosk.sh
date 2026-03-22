@@ -238,7 +238,13 @@ mostra_pagina_web() {
 
         # Click al centro della pagina per mantenere la sessione
         if [ "$tempo_trascorso" -lt "$durata" ] && [ -n "$ID_FINESTRA_CHROMIUM" ]; then
-            xdotool mousemove --window "$ID_FINESTRA_CHROMIUM" 960 540
+            # Rileva centro schermo dinamicamente
+            risoluzione=$(xdpyinfo 2>/dev/null | grep dimensions | awk '{print $2}')
+            centro_x=$(( $(echo "$risoluzione" | cut -d'x' -f1) / 2 ))
+            centro_y=$(( $(echo "$risoluzione" | cut -d'x' -f2) / 2 ))
+            [ "$centro_x" -gt 0 ] 2>/dev/null || centro_x=960
+            [ "$centro_y" -gt 0 ] 2>/dev/null || centro_y=540
+            xdotool mousemove --window "$ID_FINESTRA_CHROMIUM" "$centro_x" "$centro_y"
             xdotool click 1
         fi
     done
@@ -356,8 +362,13 @@ if [ "$autologin_abilitato" = "true" ] && [ -n "$url_login" ] && [ "$url_login" 
         xdotool windowfocus --sync "$ID_FINESTRA_CHROMIUM" 2>/dev/null
         sleep 1
 
-        # Click al centro della pagina per assicurare il focus
-        xdotool mousemove --window "$ID_FINESTRA_CHROMIUM" 960 540
+        # Click al centro della pagina per assicurare il focus (coordinate dinamiche)
+        risoluzione=$(xdpyinfo 2>/dev/null | grep dimensions | awk '{print $2}')
+        centro_x=$(( $(echo "$risoluzione" | cut -d'x' -f1) / 2 ))
+        centro_y=$(( $(echo "$risoluzione" | cut -d'x' -f2) / 2 ))
+        [ "$centro_x" -gt 0 ] 2>/dev/null || centro_x=960
+        [ "$centro_y" -gt 0 ] 2>/dev/null || centro_y=540
+        xdotool mousemove --window "$ID_FINESTRA_CHROMIUM" "$centro_x" "$centro_y"
         xdotool click 1
         sleep 1
 
@@ -391,11 +402,26 @@ if [ "$autologin_abilitato" = "true" ] && [ -n "$url_login" ] && [ "$url_login" 
             scrivi_log "Attesa caricamento dashboard (30s)..."
             sleep 30
 
-            # Click sul bottone panoramica (coordinate configurabili da config.json)
-            click_x=$(jq -r '.autologin.click_dopo_login.x // 0' "$FILE_CONFIG")
-            click_y=$(jq -r '.autologin.click_dopo_login.y // 0' "$FILE_CONFIG")
-            if [ "$click_x" -gt 0 ] 2>/dev/null && [ "$click_y" -gt 0 ] 2>/dev/null; then
-                scrivi_log "Click su bottone panoramica ($click_x, $click_y)..."
+            # Click sul bottone panoramica con coordinate auto-scalate
+            # Le coordinate in config.json sono riferite a 1920x1080 (risoluzione base)
+            # Lo script rileva la risoluzione reale e ricalcola in proporzione
+            click_x_base=$(jq -r '.autologin.click_dopo_login.x // 0' "$FILE_CONFIG")
+            click_y_base=$(jq -r '.autologin.click_dopo_login.y // 0' "$FILE_CONFIG")
+            if [ "$click_x_base" -gt 0 ] 2>/dev/null && [ "$click_y_base" -gt 0 ] 2>/dev/null; then
+                # Rileva risoluzione corrente dello schermo
+                risoluzione=$(xdpyinfo 2>/dev/null | grep dimensions | awk '{print $2}')
+                schermo_x=$(echo "$risoluzione" | cut -d'x' -f1)
+                schermo_y=$(echo "$risoluzione" | cut -d'x' -f2)
+                # Fallback a 1920x1080 se non riesce a rilevare
+                [ -z "$schermo_x" ] || [ "$schermo_x" -eq 0 ] 2>/dev/null && schermo_x=1920
+                [ -z "$schermo_y" ] || [ "$schermo_y" -eq 0 ] 2>/dev/null && schermo_y=1080
+
+                # Ricalcola coordinate in proporzione alla risoluzione reale
+                click_x=$(( click_x_base * schermo_x / 1920 ))
+                click_y=$(( click_y_base * schermo_y / 1080 ))
+
+                scrivi_log "Risoluzione rilevata: ${schermo_x}x${schermo_y}"
+                scrivi_log "Click su bottone panoramica (${click_x}, ${click_y}) [base 1080p: ${click_x_base}, ${click_y_base}]"
                 xdotool mousemove "$click_x" "$click_y"
                 sleep 0.5
                 xdotool click 1
