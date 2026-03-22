@@ -2,45 +2,45 @@
     "elementi": [
         {
             "tipo": "video",
-            "sorgente": "/home/kiosk/video/video1.mp4",
+            "sorgente": "/home/kiosk/video/Cemex_promo_logo_Tecres.mp4",
             "descrizione": "Video 1"
         },
         {
             "tipo": "web",
-            "sorgente": "https://esempio.com/fotovoltaico",
+            "sorgente": "https://uni003eu5.fusionsolar.huawei.com/uniportal/pvmswebsite/assets/build/cloud.html",
             "durata_secondi": 20,
             "descrizione": "Panoramica impianto fotovoltaico"
         },
         {
             "tipo": "video",
-            "sorgente": "/home/kiosk/video/video2.mp4",
+            "sorgente": "/home/kiosk/video/Tecres_Cal_Cemex_V6.mp4",
             "descrizione": "Video 2"
         },
         {
             "tipo": "web",
-            "sorgente": "https://esempio.com/fotovoltaico",
+            "sorgente": "https://uni003eu5.fusionsolar.huawei.com/uniportal/pvmswebsite/assets/build/cloud.html",
             "durata_secondi": 20,
             "descrizione": "Panoramica impianto fotovoltaico"
         },
         {
             "tipo": "video",
-            "sorgente": "/home/kiosk/video/video3.mp4",
+            "sorgente": "/home/kiosk/video/Tecres_Clip_Emozionale_Cut_ENG.mp4",
             "descrizione": "Video 3"
         },
         {
             "tipo": "web",
-            "sorgente": "https://esempio.com/fotovoltaico",
+            "sorgente": "https://uni003eu5.fusionsolar.huawei.com/uniportal/pvmswebsite/assets/build/cloud.html",
             "durata_secondi": 20,
             "descrizione": "Panoramica impianto fotovoltaico"
         },
         {
             "tipo": "video",
-            "sorgente": "/home/kiosk/video/video4.mp4",
+            "sorgente": "/home/kiosk/video/Video_Promo_ENG_Tecres.mp4",
             "descrizione": "Video 4"
         },
         {
             "tipo": "web",
-            "sorgente": "https://esempio.com/fotovoltaico",
+            "sorgente": "https://uni003eu5.fusionsolar.huawei.com/uniportal/pvmswebsite/assets/build/cloud.html",
             "durata_secondi": 20,
             "descrizione": "Panoramica impianto fotovoltaico"
         }
@@ -48,20 +48,18 @@
     "impostazioni": {
         "porta_pannello_web": 8080,
         "nascondi_cursore": true,
-        "volume_video": 80,
+        "volume_video": 0,
         "log_abilitato": true
     },
     "autologin": {
         "abilitato": true,
-        "url_login": "https://esempio.com/login",
-        "email": "tuaemail@azienda.it",
-        "password": "la_tua_password",
-        "url_dopo_login": "https://esempio.com/fotovoltaico/panoramica",
-        "selettori": {
-            "campo_email": "input[type='email'], input[name='email'], input[name='username']",
-            "campo_password": "input[type='password']",
-            "bottone_login": "button[type='submit'], input[type='submit']",
-            "elemento_conferma": ""
+        "url_login": "https://eu5.fusionsolar.huawei.com/unisso/login.action",
+        "email": "Tecres2025",
+        "password": "TecresFotovoltaico2025",
+        "url_dopo_login": "https://uni003eu5.fusionsolar.huawei.com/uniportal/pvmswebsite/assets/build/cloud.html",
+        "click_dopo_login": {
+            "x": 1880,
+            "y": 107
         }
     }
 }
