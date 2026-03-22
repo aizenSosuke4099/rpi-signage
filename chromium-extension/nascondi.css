@@ -1,0 +1,4 @@
+/* Nasconde il riquadro dei ricavi nella panoramica FusionSolar */
+.station-overview-down-right {
+    display: none !important;
+}

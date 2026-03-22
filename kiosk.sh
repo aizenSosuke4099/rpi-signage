@@ -125,6 +125,7 @@ avvia_chromium() {
         --overscroll-history-navigation=0 \
         --user-data-dir="$CARTELLA_PROGETTO/.chromium-profilo" \
         --check-for-update-interval=31536000 \
+        --load-extension="$CARTELLA_PROGETTO/chromium-extension" \
         "$url" \
         >/dev/null 2>&1 &
 

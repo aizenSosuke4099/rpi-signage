@@ -1,0 +1,13 @@
+{
+    "manifest_version": 3,
+    "name": "Kiosk CSS Override",
+    "version": "1.0",
+    "description": "Nasconde elementi indesiderati nella dashboard FusionSolar",
+    "content_scripts": [
+        {
+            "matches": ["*://*.fusionsolar.huawei.com/*"],
+            "css": ["nascondi.css"],
+            "run_at": "document_idle"
+        }
+    ]
+}
