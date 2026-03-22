@@ -54,8 +54,8 @@
     "autologin": {
         "abilitato": true,
         "url_login": "https://eu5.fusionsolar.huawei.com/unisso/login.action",
-        "email": "Tecres2025",
-        "password": "TecresFotovoltaico2025",
+        "email": "",
+        "password": "",
         "url_dopo_login": "https://uni003eu5.fusionsolar.huawei.com/uniportal/pvmswebsite/assets/build/cloud.html",
         "click_dopo_login": {
             "x": 1880,
