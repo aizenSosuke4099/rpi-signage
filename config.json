@@ -56,10 +56,6 @@
         "url_login": "https://eu5.fusionsolar.huawei.com/unisso/login.action",
         "email": "",
         "password": "",
-        "url_dopo_login": "https://uni003eu5.fusionsolar.huawei.com/uniportal/pvmswebsite/assets/build/cloud.html",
-        "click_dopo_login": {
-            "x_pct": 97,
-            "y_pct": 10
-        }
+        "url_dopo_login": "https://uni003eu5.fusionsolar.huawei.com/uniportal/pvmswebsite/assets/build/cloud.html"
     }
 }

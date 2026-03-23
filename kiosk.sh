@@ -402,30 +402,40 @@ if [ "$autologin_abilitato" = "true" ] && [ -n "$url_login" ] && [ "$url_login" 
             scrivi_log "Attesa caricamento dashboard (30s)..."
             sleep 30
 
-            # Click sul bottone panoramica con coordinate auto-scalate
-            # Le coordinate in config.json sono in percentuale della larghezza/altezza schermo
-            # x_pct e y_pct vanno da 0 a 100 (posizione relativa sullo schermo)
-            click_x_pct=$(jq -r '.autologin.click_dopo_login.x_pct // 0' "$FILE_CONFIG")
-            click_y_pct=$(jq -r '.autologin.click_dopo_login.y_pct // 0' "$FILE_CONFIG")
-            if [ "$click_x_pct" -gt 0 ] 2>/dev/null && [ "$click_y_pct" -gt 0 ] 2>/dev/null; then
-                # Rileva risoluzione corrente dello schermo
-                risoluzione=$(xdpyinfo 2>/dev/null | grep dimensions | awk '{print $2}')
-                schermo_x=$(echo "$risoluzione" | cut -d'x' -f1)
-                schermo_y=$(echo "$risoluzione" | cut -d'x' -f2)
-                # Fallback a 1920x1080 se non riesce a rilevare
-                [ -z "$schermo_x" ] || [ "$schermo_x" -eq 0 ] 2>/dev/null && schermo_x=1920
-                [ -z "$schermo_y" ] || [ "$schermo_y" -eq 0 ] 2>/dev/null && schermo_y=1080
+            # Click sul bottone panoramica con coordinate fisse per risoluzione
+            # Rileva la risoluzione corrente e usa le coordinate giuste
+            risoluzione=$(xdpyinfo 2>/dev/null | grep dimensions | awk '{print $2}')
+            schermo_x=$(echo "$risoluzione" | cut -d'x' -f1)
+            schermo_y=$(echo "$risoluzione" | cut -d'x' -f2)
+            scrivi_log "Risoluzione rilevata: ${schermo_x}x${schermo_y}"
 
-                # Calcola coordinate reali dalla percentuale
-                click_x=$(( schermo_x * click_x_pct / 100 ))
-                click_y=$(( schermo_y * click_y_pct / 100 ))
+            click_x=0
+            click_y=0
+            if [ "$schermo_y" -ge 2160 ] 2>/dev/null; then
+                # 4K (3840x2160) — coordinate stimate da 1440p
+                click_x=3752
+                click_y=230
+                scrivi_log "Modalità 4K (3840x2160)"
+            elif [ "$schermo_y" -ge 1440 ] 2>/dev/null; then
+                # 1440p (2560x1440) — coordinate verificate
+                click_x=2502
+                click_y=153
+                scrivi_log "Modalità 1440p (2560x1440)"
+            elif [ "$schermo_y" -ge 1080 ] 2>/dev/null; then
+                # 1080p (1920x1080) — coordinate verificate
+                click_x=1870
+                click_y=152
+                scrivi_log "Modalità 1080p (1920x1080)"
+            fi
 
-                scrivi_log "Risoluzione rilevata: ${schermo_x}x${schermo_y}"
-                scrivi_log "Click su bottone panoramica (${click_x}, ${click_y}) [${click_x_pct}%, ${click_y_pct}%]"
+            if [ "$click_x" -gt 0 ] && [ "$click_y" -gt 0 ]; then
+                scrivi_log "Click su bottone panoramica ($click_x, $click_y)"
                 xdotool mousemove "$click_x" "$click_y"
                 sleep 0.5
                 xdotool click 1
                 sleep 5
+            else
+                scrivi_log "AVVISO: Risoluzione non riconosciuta, click panoramica saltato"
             fi
         fi
 
