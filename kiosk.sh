@@ -403,11 +403,11 @@ if [ "$autologin_abilitato" = "true" ] && [ -n "$url_login" ] && [ "$url_login" 
             sleep 30
 
             # Click sul bottone panoramica con coordinate auto-scalate
-            # Le coordinate in config.json sono riferite a 1920x1080 (risoluzione base)
-            # Lo script rileva la risoluzione reale e ricalcola in proporzione
-            click_x_base=$(jq -r '.autologin.click_dopo_login.x // 0' "$FILE_CONFIG")
-            click_y_base=$(jq -r '.autologin.click_dopo_login.y // 0' "$FILE_CONFIG")
-            if [ "$click_x_base" -gt 0 ] 2>/dev/null && [ "$click_y_base" -gt 0 ] 2>/dev/null; then
+            # Le coordinate in config.json sono in percentuale della larghezza/altezza schermo
+            # x_pct e y_pct vanno da 0 a 100 (posizione relativa sullo schermo)
+            click_x_pct=$(jq -r '.autologin.click_dopo_login.x_pct // 0' "$FILE_CONFIG")
+            click_y_pct=$(jq -r '.autologin.click_dopo_login.y_pct // 0' "$FILE_CONFIG")
+            if [ "$click_x_pct" -gt 0 ] 2>/dev/null && [ "$click_y_pct" -gt 0 ] 2>/dev/null; then
                 # Rileva risoluzione corrente dello schermo
                 risoluzione=$(xdpyinfo 2>/dev/null | grep dimensions | awk '{print $2}')
                 schermo_x=$(echo "$risoluzione" | cut -d'x' -f1)
@@ -416,12 +416,12 @@ if [ "$autologin_abilitato" = "true" ] && [ -n "$url_login" ] && [ "$url_login" 
                 [ -z "$schermo_x" ] || [ "$schermo_x" -eq 0 ] 2>/dev/null && schermo_x=1920
                 [ -z "$schermo_y" ] || [ "$schermo_y" -eq 0 ] 2>/dev/null && schermo_y=1080
 
-                # Ricalcola coordinate in proporzione alla risoluzione reale
-                click_x=$(( click_x_base * schermo_x / 1920 ))
-                click_y=$(( click_y_base * schermo_y / 1080 ))
+                # Calcola coordinate reali dalla percentuale
+                click_x=$(( schermo_x * click_x_pct / 100 ))
+                click_y=$(( schermo_y * click_y_pct / 100 ))
 
                 scrivi_log "Risoluzione rilevata: ${schermo_x}x${schermo_y}"
-                scrivi_log "Click su bottone panoramica (${click_x}, ${click_y}) [base 1080p: ${click_x_base}, ${click_y_base}]"
+                scrivi_log "Click su bottone panoramica (${click_x}, ${click_y}) [${click_x_pct}%, ${click_y_pct}%]"
                 xdotool mousemove "$click_x" "$click_y"
                 sleep 0.5
                 xdotool click 1
