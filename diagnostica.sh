@@ -165,5 +165,38 @@ else
     fi
 fi
 
+# --- 10. Cosa è cambiato nel sistema e quando ---
+# Il codice del kiosk non cambia dal 23/03. Se prima andava bene e ora no,
+# la causa è quasi certamente qui dentro: un apt upgrade di vlc, mesa,
+# chromium, kernel o firmware.
+titolo "10. Storico aggiornamenti dei pacchetti che contano"
+pacchetti='vlc|mesa|libgl|libdrm|chromium|linux-image|raspi-firmware|raspberrypi|xserver|libavcodec|ffmpeg'
+trovato=0
+for f in /var/log/apt/history.log /var/log/apt/history.log.*.gz; do
+    [ -e "$f" ] || continue
+    if [ "${f##*.}" = "gz" ]; then leggi="zcat"; else leggi="cat"; fi
+    $leggi "$f" 2>/dev/null | awk -v pat="$pacchetti" '
+        /^Start-Date:/ { data = $2" "$3 }
+        /^(Upgrade|Install):/ {
+            riga = $0
+            sub(/^(Upgrade|Install): /, "", riga)
+            n = split(riga, voci, "), ")
+            for (i = 1; i <= n; i++) {
+                if (voci[i] ~ pat) {
+                    if (!(data in visto)) { print "\n[" data "]"; visto[data] = 1 }
+                    print "   " voci[i] (voci[i] ~ /\)$/ ? "" : ")")
+                }
+            }
+        }'
+    trovato=1
+done
+[ "$trovato" = "1" ] || avviso "nessun log apt trovato in /var/log/apt/"
+echo
+echo "--- versioni attualmente installate ---"
+dpkg-query -W -f='${Package} ${Version}\n' vlc chromium mpv libavcodec* libgl1-mesa-dri 2>/dev/null | grep -v '^ '
+echo "--- data ultimo boot e uptime ---"
+uptime -s 2>/dev/null | sed 's/^/boot: /'
+uptime -p 2>/dev/null
+
 titolo "Fine"
 echo "Output salvato in: $FILE_OUTPUT"
